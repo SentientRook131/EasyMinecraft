@@ -1,0 +1,13 @@
+localization:
+  players-settings:
+
+  registry-words:
+    - "incorrect-arguments-exception"
+    - "incorrect-show-mode-exception"
+location-display:
+  players-settings:
+
+variables:
+  private:
+
+  public:

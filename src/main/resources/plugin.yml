@@ -1,0 +1,8 @@
+name: EasyMinecraft
+version: '${project.version}'
+main: com.sen.em
+api-version: '1.20'
+commands:
+  em:
+    description: "The root command of this plugin"
+    usage: "/<command> [...]"
