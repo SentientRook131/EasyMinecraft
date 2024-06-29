@@ -1,22 +1,23 @@
 package com.sen;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.security.KeyPair;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.util.*;
+import java.util.function.Function;
 
 import static com.sen.Toolkit.*;
 
 public final class em extends JavaPlugin {
 
-    //public static Bot bot = null;
+    public static List<com.sen.Command> registerCommands = new ArrayList<>();
+
+    public static em getInstance() {
+        return JavaPlugin.getPlugin(em.class);
+    }
 
     @Override
     public void onEnable() {
@@ -28,8 +29,12 @@ public final class em extends JavaPlugin {
         System.out.println(" -- Please make sure that this server can get the Real Address of players -- ");
         saveDefaultConfig();
         this.getServer().getPluginManager().registerEvents(new EventListener(), this);
+        Function<Pair<String[], CommandSender>, Boolean> f = a -> {
+            a.second.sendMessage(prefix + "本指令为测试指令，您输入的参数为" + Arrays.toString(a.first));
+            return true;
+        };
+        registerCommand("test", f);
     }
-
     @Override
     public void onDisable() {
         // Plugin shutdown logic
@@ -91,11 +96,27 @@ public final class em extends JavaPlugin {
                         }
                         player.sendMessage(prefix + "变量设置成功！");
                     }
-                } else if (args[1].equalsIgnoreCase("toolkit")) {
-                    if (args[2].equalsIgnoreCase("ping")) {
+                } else if (args[0].equalsIgnoreCase("toolkit")) {
+                    if (args[1].equalsIgnoreCase("ping")) {
                         if (args.length == 3) player.sendMessage(prefix + "您的延迟：" + player.getPing() + "ms");
                         else player.sendMessage(prefix + args[3] + "的延迟：" + Objects.requireNonNull(Bukkit.getServer().getPlayer(args[3])).getPing() + "ms");
                     }
+                } else {
+                    Optional<com.sen.Command> optionalCommand = registerCommands.stream()
+                            .filter(command -> command.rootCmd.equalsIgnoreCase(args[0]))
+                            .findFirst();
+
+                    if (optionalCommand.isPresent()) {
+                        com.sen.Command command = optionalCommand.get();
+                        try {
+                            return command.run(Arrays.copyOfRange(args, 1, args.length), sender);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            return true;
+                        }
+                    }
+                    player.sendMessage(prefix + "未找到指令：" + args[0]);
+                    return true;
                 }
             }
         } catch (Exception ignore) {
@@ -123,6 +144,8 @@ public final class em extends JavaPlugin {
                 } else if (args[0].equalsIgnoreCase("var")) {
                     result.add("create");
                     result.add("set");
+                } else if (args[0].equalsIgnoreCase("toolkit")) {
+                    result.add("ping");
                 }
             } else if (args.length == 3) {
                 if (args[0].equalsIgnoreCase("var")) {
@@ -138,5 +161,9 @@ public final class em extends JavaPlugin {
             }
         }
         return result.isEmpty() ? super.onTabComplete(sender, cmd, alias, args) : result;
+    }
+
+    public boolean registerCommand(String rootCmd, Function<Pair<String[], CommandSender>, Boolean> runnable) {
+        return registerCommands.add(new com.sen.Command(rootCmd, runnable));
     }
 }

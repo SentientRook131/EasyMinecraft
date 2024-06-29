@@ -81,7 +81,11 @@
           <artifactId>fastjson</artifactId>
           <version>2.0.31</version>
       </dependency>
-
+      <dependency>
+          <groupId>com.github.mcdoeswhat</groupId>
+          <artifactId>AmazingBot-4</artifactId>
+          <version>4.0.10</version>
+      </dependency>
   </dependencies>
 </project>
 

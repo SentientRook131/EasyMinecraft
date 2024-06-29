@@ -1,6 +1,8 @@
 package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
+import me.albert.amazingbot.AmazingBot;
+import me.albert.amazingbot.bot.Bot;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -89,6 +91,7 @@ public class EventListener implements Listener {
         if (message.startsWith("!")) {
             String tmp = message.substring(1);
             e.setMessage(tmp);
+            long group = config.getLong("qq.group");
             //Objects.requireNonNull(em.bot.getGroup(config.getLong("qq.group"))).sendMessage(tmp);
         }
     }
