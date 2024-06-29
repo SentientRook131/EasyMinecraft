@@ -1,6 +1,8 @@
 package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.sen.QuestionnaireCore.Questionnaire;
+import com.sen.QuestionnaireCore.QuestionnaireInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -10,10 +12,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.server.TabCompleteEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import static com.sen.Toolkit.*;
 
@@ -114,6 +118,26 @@ public class EventListener implements Listener {
             e.getPlayer().sendMessage(prefix + "已自动获取您的位置信息，如果想关闭位置信息显示，请输入 /em location-display off 命令。");
             config.set("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer", json.toJSONString());
             config.set("location-display.players-settings." + e.getPlayer().getUniqueId() + ".show-mode", "country");
+        }
+    }
+    @EventHandler
+    public void onPlayerChatE5(AsyncPlayerChatEvent e) {
+        if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getPlayer().getUniqueId()))) {
+            String answer = e.getMessage();
+            QuestionnaireInstance qi = matchQuestionnaire(e.getPlayer().getUniqueId());
+            if (qi != null) {
+                if (qi.originalQuestionnaire.questions.get(qi.currentQuestionIndex).answer.equalsIgnoreCase(answer)) {
+                    e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
+                    e.getPlayer().sendMessage(prefix + ChatColor.GREEN + "恭喜您，本题回答正确！");
+                    qi.nextQuestion(qi.originalQuestionnaire.questions.get(qi.currentQuestionIndex).score);
+
+                } else {
+                    e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                    e.getPlayer().sendMessage(prefix + ChatColor.DARK_RED + "回答错误！");
+                    qi.nextQuestion(0);
+                }
+                e.setCancelled(true);
+            }
         }
     }
 }

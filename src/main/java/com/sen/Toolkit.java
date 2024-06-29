@@ -2,6 +2,8 @@ package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.base.Charsets;
+import com.sen.QuestionnaireCore.Questionnaire;
+import com.sen.QuestionnaireCore.QuestionnaireInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.Configuration;
@@ -16,17 +18,29 @@ import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
-import java.util.Base64;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class Toolkit {
+    public static final List<Pair<UUID, QuestionnaireInstance>> whoAreDoingQuestionnaire = new ArrayList<>();
     public static final JavaPlugin plugin = JavaPlugin.getPlugin(em.class);
     public static final Configuration config = plugin.getConfig();
     public static final String prefix = ChatColor.GOLD + "[EasyMinecraft]" + ChatColor.WHITE;
     public static final String apiUrl = "http://ip-api.com/json/";
+    public static List<Questionnaire> questionnaires = new ArrayList<>();
 
+    public static Questionnaire nameMatchesQuestionnaire(String name) {
+        Optional<Questionnaire> optional = questionnaires.stream().filter(q -> q.name.equals(name)).findFirst();
+        return optional.orElse(null);
+    }
+
+    public static void registerQuestionnaire(Questionnaire q) {
+        questionnaires.add(q);
+    }
+
+    public static QuestionnaireInstance matchQuestionnaire(UUID player) {
+        Optional<Pair<UUID, QuestionnaireInstance>> optional = whoAreDoingQuestionnaire.stream().filter(pair -> pair.first.equals(player)).findFirst();
+        return optional.map(uuidQuestionnaireInstancePair -> uuidQuestionnaireInstancePair.second).orElse(null);
+    }
     public static class RSA {
         public static KeyPair generateKeyPair() throws NoSuchAlgorithmException {
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
