@@ -1,8 +1,6 @@
 package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
-import me.albert.amazingbot.AmazingBot;
-import me.albert.amazingbot.bot.Bot;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -66,8 +64,7 @@ public class EventListener implements Listener {
             }
             return;
         }
-        Collection<Player> players = (Collection<Player>) Bukkit.getOnlinePlayers();
-        for (Player player : players) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (e.getMessage().contains("@" + player.getDisplayName())) {
                 player.sendMessage(prefix + ChatColor.RED + e.getPlayer().getDisplayName() + ChatColor.GREEN + "在发言中提到了你！");
                 player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.0F);
@@ -91,7 +88,7 @@ public class EventListener implements Listener {
         if (message.startsWith("!")) {
             String tmp = message.substring(1);
             e.setMessage(tmp);
-            long group = config.getLong("qq.group");
+            //long group = config.getLong("qq.group");
             //Objects.requireNonNull(em.bot.getGroup(config.getLong("qq.group"))).sendMessage(tmp);
         }
     }
