@@ -133,7 +133,6 @@ public final class em extends JavaPlugin {
             if (args.length == 1) {
                 result.add("location-display");
                 result.add("var");
-                result.add("qq");
                 result.add("toolkit");
             } else if (args.length == 2) {
                 if (args[0].equalsIgnoreCase("location-display")) {
