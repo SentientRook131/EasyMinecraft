@@ -1,27 +1,35 @@
 package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.sen.QuestionnaireCore.Questionnaire;
+import com.sen.QuestionnaireCore.Getter;
+import com.sen.QuestionnaireCore.Question;
+import com.sen.QuestionnaireCore.QuestionType;
 import com.sen.QuestionnaireCore.QuestionnaireInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryInteractEvent;
+import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.server.TabCompleteEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static com.sen.Toolkit.*;
 
 public class EventListener implements Listener {
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
     @EventHandler
     public void onPlayerChatE1(AsyncPlayerChatEvent e) {
         if (config.contains("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer")) {
@@ -123,21 +131,43 @@ public class EventListener implements Listener {
     @EventHandler
     public void onPlayerChatE5(AsyncPlayerChatEvent e) {
         if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getPlayer().getUniqueId()))) {
-            String answer = e.getMessage();
-            QuestionnaireInstance qi = matchQuestionnaire(e.getPlayer().getUniqueId());
-            if (qi != null) {
-                if (qi.originalQuestionnaire.questions.get(qi.currentQuestionIndex).answer.equalsIgnoreCase(answer)) {
+            QuestionnaireInstance qi = whoAreDoingQuestionnaire.stream().filter(p -> p.first.equals(e.getPlayer().getUniqueId())).findFirst().get().second;
+            if (qi.getCurrentQuestion().type.equals(QuestionType.COMPLETION)) {
+                if (e.getMessage().equals(qi.getCurrentQuestion().answer)) {
+                    qi.nextQuestion(qi.getCurrentQuestion().score);
                     e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
-                    e.getPlayer().sendMessage(prefix + ChatColor.GREEN + "恭喜您，本题回答正确！");
-                    qi.nextQuestion(qi.originalQuestionnaire.questions.get(qi.currentQuestionIndex).score);
-
                 } else {
-                    e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
-                    e.getPlayer().sendMessage(prefix + ChatColor.DARK_RED + "回答错误！");
                     qi.nextQuestion(0);
+                    e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                 }
                 e.setCancelled(true);
             }
         }
+    }
+    @EventHandler
+    public void onPlayerInteractMenu(InventoryClickEvent e) throws InterruptedException {
+         if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getWhoClicked().getUniqueId()))) {
+             if (e.getInventory().getSize() <= 20) {
+                 QuestionnaireInstance doing = whoAreDoingQuestionnaire.stream().filter(p -> p.first.equals(e.getWhoClicked().getUniqueId())).findFirst().get().second;
+                 Question question = doing.getCurrentQuestion();
+                 Player player = (Player) e.getWhoClicked();
+                 if (question.type.equals(QuestionType.CHOICE)) {
+                     e.getWhoClicked().closeInventory();
+                     if (question.answer.equals(e.getCurrentItem().getItemMeta().getDisplayName()))  {
+                         doing.nextQuestion(question.score);
+                         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
+                     } else {
+                         doing.nextQuestion(0);
+                         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                     }
+                 } else if (question.type.equals(QuestionType.COMPLETION)) {
+                     if (e.getCurrentItem().getType().equals(Material.WRITABLE_BOOK)) {
+                         e.getWhoClicked().closeInventory();
+                         e.getWhoClicked().sendMessage(prefix + "请输入答案：");
+                     }
+                 }
+                 e.setCancelled(true);
+             }
+         }
     }
 }

@@ -1,10 +1,12 @@
 package com.sen;
 
+import com.alibaba.fastjson.JSONArray;
 import com.sen.QuestionnaireCore.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -37,52 +39,65 @@ public final class em extends JavaPlugin {
             return true;
         };
         registerCommand("test", f);
-        Toolkit.registerQuestionnaire(new TestQuestionnaire());
-        List<String> questionnaireNames = config.getStringList("questionnaires.$registry$");
-        for (String questionnaireName : questionnaireNames) {
-            String name = config.getString("questionnaires." + questionnaireName + ".name");
-            String description = config.getString("questionnaires." + questionnaireName + ".description");
-            String title = config.getString("questionnaires." + questionnaireName + ".title");
-            Questionnaire questionnaire = new Questionnaire(name, description, title);
-            List<String> questionNames = config.getStringList("questionnaires." + questionnaireName + ".$registry$");
-            for (String questionName : questionNames) {
-                String qName = config.getString("questionnaires." + questionnaire.name + ".questions." + questionName + ".name");
-                String qDescription = config.getString("questionnaires." + questionnaire.name + ".questions." + questionName + ".description");
-                String[] qChoices = config.getStringList("questionnaires." + questionnaire.name + ".questions." + questionName + ".choices").toArray(new String[0]);
-                boolean qIsAnswerable = config.getBoolean("questionnaires." + questionnaire.name + ".questions." + questionName + ".isAnswerable");
-                int qScore = config.getInt("questionnaires." + questionnaire.name + ".questions." + questionName + ".score");
-                QuestionType qType = (QuestionType) config.get("questionnaires." + questionnaire.name + ".questions." + questionName + ".type");
-                String qAnswer = config.getString("questionnaires." + questionnaire.name + ".questions." + questionName + ".answer");
-                Question question = new Question(qIsAnswerable, qType, qName, qDescription, qAnswer, qChoices, qScore);
+        List<Long> questionnaireIds = config.getLongList("questionnaires.$registry$");
+        for (long questionnaireId : questionnaireIds) {
+            long id = config.getLong("questionnaires." + questionnaireId + ".id");
+            String description = config.getString("questionnaires." + questionnaireId + ".description");
+            String title = config.getString("questionnaires." + questionnaireId + ".title");
+            Questionnaire questionnaire = new Questionnaire(title, id, description);
+            List<Long> questionIds = config.getLongList("questionnaires." + questionnaireId + ".$registry$");
+            for (long questionId : questionIds) {
+                String qName = config.getString("questionnaires." + questionnaire.id + ".questions." + questionId + ".name");
+                String qDescription = config.getString("questionnaires." + questionnaire.id + ".questions." + questionId + ".description");
+                int choices_count = config.getInt("questionnaires." + questionnaire.id + ".questions." + questionId + ".choices_count");
+                List<Choice> qChoices = new ArrayList<>();
+                for (int i = 0; i < choices_count; i++) {
+                    String choiceEssential = config.getString("questionnaires." + questionnaire.id + ".questions." + questionId + ".choices." + i + ".essential");
+                    String choiceView = config.getString("questionnaires." + questionnaire.id + ".questions." + questionId + ".choices." + i + ".view");
+                    Choice choice = new Choice(choiceEssential, choiceView);
+                    qChoices.add(choice);
+                }
+                boolean qIsAnswerable = config.getBoolean("questionnaires." + questionnaire.id + ".questions." + questionId + ".isAnswerable");
+                int qScore = config.getInt("questionnaires." + questionnaire.id + ".questions." + questionId + ".score");
+                String qTypeStr = config.getString("questionnaires." + questionnaire.id + ".questions." + questionId + ".type");
+                QuestionType qType = qTypeStr.equalsIgnoreCase("CHOICE") ? QuestionType.CHOICE : qTypeStr.equalsIgnoreCase("CHOICE") ? QuestionType.COMPLETION : QuestionType.SHORT_ANSWER;
+                String qAnswer = config.getString("questionnaires." + questionnaire.id + ".questions." + questionId + ".answer");
+                Question question = new Question(qIsAnswerable, qType, qName, questionId, qDescription, qAnswer, qChoices, qScore);
                 questionnaire.addQuestion(question);
             }
             registerQuestionnaire(questionnaire);
         }
         if (questionnaires == null) questionnaires = new ArrayList<>();
+        registerQuestionnaire(new JoinServerQuestionnaire());
     }
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-        List<String> questionnaireNames = new ArrayList<>();
+        List<Long> questionnaireIds = new ArrayList<>();
         for (Questionnaire questionnaire : questionnaires) {
-            questionnaireNames.add(questionnaire.name);
-            config.set("questionnaires." + questionnaire.name + ".name", questionnaire.name);
-            config.set("questionnaires." + questionnaire.name + ".description", questionnaire.description);
-            config.set("questionnaires." + questionnaire.name + ".title", questionnaire.title);
-            List<String> questionNames = new ArrayList<>();
+            questionnaireIds.add(questionnaire.id);
+            config.set("questionnaires." + questionnaire.id + ".id", questionnaire.id);
+            config.set("questionnaires." + questionnaire.id + ".description", questionnaire.description);
+            config.set("questionnaires." + questionnaire.id + ".title", questionnaire.title);
+            List<Long> questionIds = new ArrayList<>();
             for (Question question : questionnaire.questions) {
-                questionNames.add(question.name);
-                config.set("questionnaires." + questionnaire.name + ".questions." + question.name + ".name", question.name);
-                config.set("questionnaires." + questionnaire.name + ".questions." + question.name + ".description", question.description);
-                config.set("questionnaires." + questionnaire.name + ".questions." + question.name + ".type", question.type);
-                config.set("questionnaires." + questionnaire.name + ".questions." + question.name + ".choices", question.choices);
-                config.set("questionnaires." + questionnaire.name + ".questions." + question.name + ".isAnswerable", question.isAnswerable);
-                config.set("questionnaires." + questionnaire.name + ".questions." + question.name + ".score", question.score);
-                config.set("questionnaires." + questionnaire.name + ".questions." + question.name + ".answer", question.answer);
+                questionIds.add(question.id);
+                config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".name", question.name);
+                config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".description", question.description);
+                config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".type", question.type.toString());
+                for (int i = 0;i < question.choices.size();i++) {
+                    config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".choices." + i + ".essential", question.choices.get(i).essential);
+                    config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".choices." + i + ".view", question.choices.get(i).view);
+                }
+                config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".choices_count", question.choices.size());
+                config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".choices", question.choices);
+                config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".isAnswerable", question.isAnswerable);
+                config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".score", question.score);
+                config.set("questionnaires." + questionnaire.id + ".questions." + question.name + ".answer", question.answer);
             }
-            config.set("questionnaires." + questionnaire.name + ".$registry$", questionNames);
+            config.set("questionnaires." + questionnaire.id + ".$registry$", questionIds);
         }
-        config.set("questionnaires.$registry$", questionnaireNames);
+        config.set("questionnaires.$registry$", questionnaireIds);
         saveConfig();
     }
 
@@ -147,18 +162,11 @@ public final class em extends JavaPlugin {
                         else player.sendMessage(prefix + args[3] + "的延迟：" + Objects.requireNonNull(Bukkit.getServer().getPlayer(args[3])).getPing() + "ms");
                     }
                 } else if (args[0].equalsIgnoreCase("questionnaire")) {
-                    if (args[1].equalsIgnoreCase("create")) {
-                        String title = args[2], name = args[3], description = args[4];
-                        registerQuestionnaire(new Questionnaire(title, name, description));
-                    } else if (args[1].equalsIgnoreCase("add_question")) {
-                        String name = args[2];
-                        Questionnaire q = nameMatchesQuestionnaire(name);
-                        String title = args[3], description = args[4], typetmp = args[5], answer = args[6];
-                        int score = Integer.parseInt(args[7]);
-                        QuestionType type = (typetmp.equalsIgnoreCase("choice") ? QuestionType.CHOICE : typetmp.equalsIgnoreCase("completion") ? QuestionType.COMPLETION : QuestionType.SHORT_ANSWER);
-                        q.addQuestion(new Question(true, type, title, description, answer, ((!type.equals(QuestionType.CHOICE)) ? new String[0] : Arrays.copyOfRange(args, 8, args.length)), score));
-                    } else if (args[1].equalsIgnoreCase("conduct")) {
-                        QuestionnaireInstance qi = nameMatchesQuestionnaire(args[2]).conduct(Bukkit.getPlayer(args[3]), true, true, true, true);
+                    if (args[1].equalsIgnoreCase("conduct")) {
+                        String title = args[2];
+                        if (args.length == 4) player = Bukkit.getPlayer(args[3]);
+                        Questionnaire q = titleMatchesQuestionnaire(title);
+                        QuestionnaireInstance qi = q.conduct(player, true, true, true, true);
                         qi.start();
                     }
                 } else {
@@ -208,9 +216,8 @@ public final class em extends JavaPlugin {
                 } else if (args[0].equalsIgnoreCase("toolkit")) {
                     result.add("ping");
                 } else if (args[0].equalsIgnoreCase("questionnaire")) {
-                    result.add("create");
-                    result.add("add_question");
                     result.add("conduct");
+                    result.add(ChatColor.GREEN + "由于技术原因，暂不支持游戏内创建问卷，请自行编程创建问卷！");
                 }
             } else if (args.length == 3) {
                 if (args[0].equalsIgnoreCase("var")) {
@@ -226,9 +233,9 @@ public final class em extends JavaPlugin {
                     if (args[1].equalsIgnoreCase("create")) {
                         result.add("<title>");
                     } else if (args[1].equalsIgnoreCase("add_question")) {
-                        for (Questionnaire q : questionnaires) result.add(q.name);
+                        for (Questionnaire q : questionnaires) result.add(q.title);
                     } else if (args[1].equalsIgnoreCase("conduct")) {
-                        for (Questionnaire q : questionnaires) result.add(q.name);
+                        for (Questionnaire q : questionnaires) result.add(q.title);
                     }
                 }
             } else if (args.length == 4) {

@@ -11,11 +11,11 @@ public class Questionnaire implements Serializable {
 
     public final List<Question> questions = new ArrayList<>();
     public final String title;
-    public final String name;
+    public final long id;
     public final String description;
-    public Questionnaire(String title, String name, String description) {
+    public Questionnaire(String title, long id, String description) {
         this.title = title;
-        this.name = name;
+        this.id = id;
         this.description = description;
     }
     public void selfRegister() {

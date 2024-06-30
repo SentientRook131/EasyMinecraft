@@ -2,12 +2,15 @@ package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.base.Charsets;
+import com.sen.QuestionnaireCore.Getter;
+import com.sen.QuestionnaireCore.Question;
 import com.sen.QuestionnaireCore.Questionnaire;
 import com.sen.QuestionnaireCore.QuestionnaireInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.crypto.Cipher;
@@ -20,23 +23,29 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
 
-public class Toolkit {
+public class Toolkit<T> {
     public static final List<Pair<UUID, QuestionnaireInstance>> whoAreDoingQuestionnaire = new ArrayList<>();
+    public static final Map<UUID, Inventory> questionInventories = new HashMap<>();
     public static final JavaPlugin plugin = JavaPlugin.getPlugin(em.class);
     public static final Configuration config = plugin.getConfig();
     public static final String prefix = ChatColor.GOLD + "[EasyMinecraft]" + ChatColor.WHITE;
     public static final String apiUrl = "http://ip-api.com/json/";
     public static List<Questionnaire> questionnaires = new ArrayList<>();
-
-    public static Questionnaire nameMatchesQuestionnaire(String name) {
-        Optional<Questionnaire> optional = questionnaires.stream().filter(q -> q.name.equals(name)).findFirst();
+    public static Questionnaire idMatchesQuestionnaire(long id) {
+        Optional<Questionnaire> optional = questionnaires.stream().filter(q -> q.id == id).findFirst();
+        return optional.orElse(null);
+    }
+    public static Questionnaire titleMatchesQuestionnaire(String title) {
+        Optional<Questionnaire> optional = questionnaires.stream().filter(q -> Objects.equals(q.title, title)).findFirst();
         return optional.orElse(null);
     }
 
     public static void registerQuestionnaire(Questionnaire q) {
         questionnaires.add(q);
     }
-
+    public  List<T> createList(Object... values) {
+        return new ArrayList<T>((Collection<? extends T>) Arrays.asList(values));
+    }
     public static QuestionnaireInstance matchQuestionnaire(UUID player) {
         Optional<Pair<UUID, QuestionnaireInstance>> optional = whoAreDoingQuestionnaire.stream().filter(pair -> pair.first.equals(player)).findFirst();
         return optional.map(uuidQuestionnaireInstancePair -> uuidQuestionnaireInstancePair.second).orElse(null);

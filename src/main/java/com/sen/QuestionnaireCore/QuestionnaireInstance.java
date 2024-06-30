@@ -1,10 +1,12 @@
 package com.sen.QuestionnaireCore;
 
+import com.sen.InventoryCore.InventoryAPI;
 import com.sen.Pair;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 
 import java.io.Serializable;
-import java.util.UUID;
 
 import static com.sen.Toolkit.*;
 public class QuestionnaireInstance implements Serializable {
@@ -24,6 +26,9 @@ public class QuestionnaireInstance implements Serializable {
         this.whoAreDoing = whoAreDoing;
         this.originalQuestionnaire = questionnaire;
     }
+    public Question getCurrentQuestion() {
+        return originalQuestionnaire.questions.get(currentQuestionIndex);
+    }
     public void start() {
         this.currentQuestionIndex = -1;
         score = 0;
@@ -40,14 +45,15 @@ public class QuestionnaireInstance implements Serializable {
         }
 
         Question question = originalQuestionnaire.questions.get(currentQuestionIndex);
-        whoAreDoing.sendMessage(prefix + (currentQuestionIndex + 1) + ". " + question.name + "\n" + prefix + question.description);
-        if (question.type == QuestionType.CHOICE) {
-            for (String choice : question.choices) whoAreDoing.sendMessage(prefix + choice);
-        }
+        Inventory i = InventoryAPI.showQuestion(this, question, whoAreDoing);
+        questionInventories.put(whoAreDoing.getUniqueId(), i);
+        whoAreDoing.openInventory(i);
     }
     public void finish() {
         whoAreDoing.sendMessage(prefix + "恭喜您成功完成问卷！");
         whoAreDoing.sendMessage(prefix + "您的分值：" + score);
+        whoAreDoing.playSound(whoAreDoing.getLocation(), Sound.ENTITY_VILLAGER_YES, 1, 1);
         whoAreDoingQuestionnaire.removeIf(q -> q.first.equals(whoAreDoing.getUniqueId()));
+        questionInventories.remove(whoAreDoing.getUniqueId());
     }
 }
