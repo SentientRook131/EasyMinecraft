@@ -1,5 +1,6 @@
 package com.sen.QuestionnaireCore;
 
+import com.sen.Events.PlayerConductQuestionnaireEvent;
 import com.sen.Events.PlayerFinishQuestionnaireEvent;
 import com.sen.InventoryCore.InventoryAPI;
 import com.sen.Pair;
@@ -32,6 +33,8 @@ public class QuestionnaireInstance implements Serializable {
         return originalQuestionnaire.questions.get(currentQuestionIndex);
     }
     public void start() {
+        PlayerConductQuestionnaireEvent e = new PlayerConductQuestionnaireEvent(whoAreDoing, this);
+        Bukkit.getServer().getPluginManager().callEvent(e);
         this.currentQuestionIndex = -1;
         score = 0;
         nextQuestion(0);
