@@ -1,7 +1,9 @@
 package com.sen.QuestionnaireCore;
 
+import com.sen.Events.PlayerFinishQuestionnaireEvent;
 import com.sen.InventoryCore.InventoryAPI;
 import com.sen.Pair;
+import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -50,6 +52,8 @@ public class QuestionnaireInstance implements Serializable {
         whoAreDoing.openInventory(i);
     }
     public void finish() {
+        PlayerFinishQuestionnaireEvent playerFinishQuestionnaireEvent = new PlayerFinishQuestionnaireEvent(whoAreDoing, this, score);
+        Bukkit.getServer().getPluginManager().callEvent(playerFinishQuestionnaireEvent);
         whoAreDoing.sendMessage(prefix + "恭喜您成功完成问卷！");
         whoAreDoing.sendMessage(prefix + "您的分值：" + score);
         whoAreDoing.playSound(whoAreDoing.getLocation(), Sound.ENTITY_VILLAGER_YES, 1, 1);

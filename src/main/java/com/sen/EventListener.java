@@ -1,6 +1,9 @@
 package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.sen.Events.PlayerAnswerQuestionCorrectlyEvent;
+import com.sen.Events.PlayerAnswerQuestionEvent;
+import com.sen.Events.PlayerAnswerQuestionWronglyEvent;
 import com.sen.QuestionnaireCore.Getter;
 import com.sen.QuestionnaireCore.Question;
 import com.sen.QuestionnaireCore.QuestionType;
@@ -18,6 +21,8 @@ import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.server.TabCompleteEvent;
+import org.bukkit.plugin.EventExecutor;
+import org.bukkit.plugin.RegisteredListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -134,18 +139,24 @@ public class EventListener implements Listener {
             QuestionnaireInstance qi = whoAreDoingQuestionnaire.stream().filter(p -> p.first.equals(e.getPlayer().getUniqueId())).findFirst().get().second;
             if (qi.getCurrentQuestion().type.equals(QuestionType.COMPLETION)) {
                 if (e.getMessage().equals(qi.getCurrentQuestion().answer)) {
+                    PlayerAnswerQuestionCorrectlyEvent playerAnswerQuestionCorrectlyEvent = new PlayerAnswerQuestionCorrectlyEvent(e.getPlayer(), qi.getCurrentQuestion(), qi);
+                    Bukkit.getServer().getPluginManager().callEvent(playerAnswerQuestionCorrectlyEvent);
                     qi.nextQuestion(qi.getCurrentQuestion().score);
                     e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
                 } else {
+                    PlayerAnswerQuestionWronglyEvent playerAnswerQuestionWronglyEvent = new PlayerAnswerQuestionWronglyEvent(e.getPlayer(), qi.getCurrentQuestion(), qi);
+                    Bukkit.getServer().getPluginManager().callEvent(playerAnswerQuestionWronglyEvent);
                     qi.nextQuestion(0);
                     e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                 }
+                PlayerAnswerQuestionEvent playerAnswerQuestionEvent = new PlayerAnswerQuestionEvent(e.getPlayer(), qi.getCurrentQuestion(), qi);
+                Bukkit.getServer().getPluginManager().callEvent(playerAnswerQuestionEvent);
                 e.setCancelled(true);
             }
         }
     }
     @EventHandler
-    public void onPlayerInteractMenu(InventoryClickEvent e) throws InterruptedException {
+    public void onPlayerInteractMenu(InventoryClickEvent e) {
          if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getWhoClicked().getUniqueId()))) {
              if (e.getInventory().getSize() <= 20) {
                  QuestionnaireInstance doing = whoAreDoingQuestionnaire.stream().filter(p -> p.first.equals(e.getWhoClicked().getUniqueId())).findFirst().get().second;
@@ -154,12 +165,18 @@ public class EventListener implements Listener {
                  if (question.type.equals(QuestionType.CHOICE)) {
                      e.getWhoClicked().closeInventory();
                      if (question.answer.equals(e.getCurrentItem().getItemMeta().getDisplayName()))  {
+                         PlayerAnswerQuestionCorrectlyEvent playerAnswerQuestionCorrectlyEvent = new PlayerAnswerQuestionCorrectlyEvent(player, question, doing);
+                         Bukkit.getServer().getPluginManager().callEvent(playerAnswerQuestionCorrectlyEvent);
                          doing.nextQuestion(question.score);
                          player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
                      } else {
+                         PlayerAnswerQuestionWronglyEvent playerAnswerQuestionWronglyEvent = new PlayerAnswerQuestionWronglyEvent(player, question, doing);
+                         Bukkit.getServer().getPluginManager().callEvent(playerAnswerQuestionWronglyEvent);
                          doing.nextQuestion(0);
                          player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                      }
+                     PlayerAnswerQuestionEvent playerAnswerQuestionEvent = new PlayerAnswerQuestionEvent(player, question, doing);
+                     Bukkit.getServer().getPluginManager().callEvent(playerAnswerQuestionEvent);
                  } else if (question.type.equals(QuestionType.COMPLETION)) {
                      if (e.getCurrentItem().getType().equals(Material.WRITABLE_BOOK)) {
                          e.getWhoClicked().closeInventory();
