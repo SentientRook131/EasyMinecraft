@@ -1,12 +1,11 @@
 package com.sen;
 
-import com.alibaba.fastjson.JSONArray;
 import com.sen.QuestionnaireCore.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -158,8 +157,34 @@ public final class em extends JavaPlugin {
                     }
                 } else if (args[0].equalsIgnoreCase("toolkit")) {
                     if (args[1].equalsIgnoreCase("ping")) {
-                        if (args.length == 3) player.sendMessage(prefix + "您的延迟：" + player.getPing() + "ms");
-                        else player.sendMessage(prefix + args[3] + "的延迟：" + Objects.requireNonNull(Bukkit.getServer().getPlayer(args[3])).getPing() + "ms");
+                        if (args.length == 2) player.sendMessage(prefix + "您的延迟：" + player.getPing() + "ms");
+                        else player.sendMessage(prefix + args[2] + "的延迟：" + Objects.requireNonNull(Bukkit.getServer().getPlayer(args[2])).getPing() + "ms");
+                    } else if (args[1].equalsIgnoreCase("random-tp")) {
+                        Random random = new Random();
+                        int x = random.nextInt(10000000);
+                        int z = random.nextInt(10000000);
+                        int y = player.getWorld().getHighestBlockYAt(x, z);
+                        player.teleport(new Location(player.getWorld(), x, y, z));
+                        player.sendMessage(prefix + "随机传送成功！");
+                    } else if (args[1].equalsIgnoreCase("random-num")) {
+                        Random random = new Random();
+                        if (args.length == 3) {
+                            int rn = random.nextInt(0, Integer.parseInt(args[2]) + 1);
+                            for (Player p : player.getWorld().getPlayers()) {
+                                p.sendMessage(prefix + "玩家 " + player.getDisplayName() + " 抽中了随机数：" + rn);
+                            }
+                        } else if (args.length == 4) {
+                            int min = Integer.parseInt(args[2]);
+                            int max = Integer.parseInt(args[3]);
+                            if (max <= min) {
+                                player.sendMessage(prefix + "最大值不能小于最小值！");
+                                return true;
+                            }
+                            int rn = random.nextInt(min, max);
+                            for (Player p : player.getWorld().getPlayers()) {
+                                p.sendMessage(prefix + "玩家 " + player.getDisplayName() + " 抽中了随机数：" + rn);
+                            }
+                        }
                     }
                 } else if (args[0].equalsIgnoreCase("questionnaire")) {
                     if (args[1].equalsIgnoreCase("conduct")) {
@@ -195,7 +220,7 @@ public final class em extends JavaPlugin {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
+    public List<String> onTabComplete(@NotNull CommandSender sender, Command cmd, @NotNull String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (cmd.getName().equalsIgnoreCase("em")) {
             if (args.length == 1) {
@@ -215,6 +240,8 @@ public final class em extends JavaPlugin {
                     result.add("set");
                 } else if (args[0].equalsIgnoreCase("toolkit")) {
                     result.add("ping");
+                    result.add("random-tp");
+                    result.add("random-num");
                 } else if (args[0].equalsIgnoreCase("questionnaire")) {
                     result.add("conduct");
                     result.add(ChatColor.GREEN + "由于技术原因，暂不支持游戏内创建问卷，请自行编程创建问卷！");
@@ -228,12 +255,15 @@ public final class em extends JavaPlugin {
                 } else if (args[0].equalsIgnoreCase("toolkit")) {
                     if (args[1].equalsIgnoreCase("ping")) {
 
+                    } else if (args[1].equalsIgnoreCase("random-num")) {
+                        result.add("[min]");
+                        result.add("<max>");
                     }
                 } else if (args[0].equalsIgnoreCase("questionnaire")) {
                     if (args[1].equalsIgnoreCase("create")) {
-                        result.add("<title>");
+                        result.add("不受支持！");
                     } else if (args[1].equalsIgnoreCase("add_question")) {
-                        for (Questionnaire q : questionnaires) result.add(q.title);
+                        result.add("不受支持！");
                     } else if (args[1].equalsIgnoreCase("conduct")) {
                         for (Questionnaire q : questionnaires) result.add(q.title);
                     }
@@ -246,6 +276,10 @@ public final class em extends JavaPlugin {
                         result.add("<title>");
                     } else {
                         result.add(ChatColor.LIGHT_PURPLE + "Tab补全不可用！");
+                    }
+                } else if (args[0].equalsIgnoreCase("toolkit")) {
+                    if (args[1].equalsIgnoreCase("random-num")) {
+                        result.add("[max]");
                     }
                 }
             } else if (args.length == 5) {

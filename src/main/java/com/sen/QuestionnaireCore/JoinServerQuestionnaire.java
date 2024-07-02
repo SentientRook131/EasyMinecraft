@@ -2,7 +2,6 @@ package com.sen.QuestionnaireCore;
 
 import com.sen.Toolkit;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 public class JoinServerQuestionnaire extends Questionnaire {
