@@ -169,7 +169,7 @@ public final class em extends JavaPlugin {
                     } else if (args[1].equalsIgnoreCase("random-num")) {
                         Random random = new Random();
                         if (args.length == 3) {
-                            int rn = random.nextInt(0, Integer.parseInt(args[2]) + 1);
+                            int rn = random.nextInt(0, Integer.parseInt(args[2]));
                             for (Player p : player.getWorld().getPlayers()) {
                                 p.sendMessage(prefix + "玩家 " + player.getDisplayName() + " 抽中了随机数：" + rn);
                             }
