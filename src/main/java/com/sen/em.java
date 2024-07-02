@@ -161,8 +161,8 @@ public final class em extends JavaPlugin {
                         else player.sendMessage(prefix + args[2] + "的延迟：" + Objects.requireNonNull(Bukkit.getServer().getPlayer(args[2])).getPing() + "ms");
                     } else if (args[1].equalsIgnoreCase("random-tp")) {
                         Random random = new Random();
-                        int x = random.nextInt(10000000);
-                        int z = random.nextInt(10000000);
+                        int x = random.nextInt(-10000000,10000000);
+                        int z = random.nextInt(-10000000, 10000000);
                         int y = player.getWorld().getHighestBlockYAt(x, z);
                         player.teleport(new Location(player.getWorld(), x, y, z));
                         player.sendMessage(prefix + "随机传送成功！");
