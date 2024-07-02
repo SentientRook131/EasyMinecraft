@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.sen.Events.PlayerAnswerQuestionCorrectlyEvent;
 import com.sen.Events.PlayerAnswerQuestionEvent;
 import com.sen.Events.PlayerAnswerQuestionWronglyEvent;
-import com.sen.QuestionnaireCore.Getter;
+import com.sen.Events.PlayerQuitQuestionnaireAbnormallyEvent;
 import com.sen.QuestionnaireCore.Question;
 import com.sen.QuestionnaireCore.QuestionType;
 import com.sen.QuestionnaireCore.QuestionnaireInstance;
@@ -16,25 +16,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryInteractEvent;
-import org.bukkit.event.inventory.InventoryPickupItemEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.server.TabCompleteEvent;
-import org.bukkit.plugin.EventExecutor;
-import org.bukkit.plugin.RegisteredListener;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static com.sen.Toolkit.*;
 
 public class EventListener implements Listener {
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
     @EventHandler
     public void onPlayerChatE1(AsyncPlayerChatEvent e) {
         if (config.contains("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer")) {
@@ -164,7 +158,7 @@ public class EventListener implements Listener {
                  Player player = (Player) e.getWhoClicked();
                  if (question.type.equals(QuestionType.CHOICE)) {
                      e.getWhoClicked().closeInventory();
-                     if (question.answer.equals(e.getCurrentItem().getItemMeta().getDisplayName()))  {
+                     if (question.answer.equals(Objects.requireNonNull(Objects.requireNonNull(e.getCurrentItem()).getItemMeta()).getDisplayName()))  {
                          PlayerAnswerQuestionCorrectlyEvent playerAnswerQuestionCorrectlyEvent = new PlayerAnswerQuestionCorrectlyEvent(player, question, doing);
                          Bukkit.getServer().getPluginManager().callEvent(playerAnswerQuestionCorrectlyEvent);
                          doing.nextQuestion(question.score);
@@ -178,7 +172,7 @@ public class EventListener implements Listener {
                      PlayerAnswerQuestionEvent playerAnswerQuestionEvent = new PlayerAnswerQuestionEvent(player, question, doing);
                      Bukkit.getServer().getPluginManager().callEvent(playerAnswerQuestionEvent);
                  } else if (question.type.equals(QuestionType.COMPLETION)) {
-                     if (e.getCurrentItem().getType().equals(Material.WRITABLE_BOOK)) {
+                     if (Objects.requireNonNull(e.getCurrentItem()).getType().equals(Material.WRITABLE_BOOK)) {
                          e.getWhoClicked().closeInventory();
                          e.getWhoClicked().sendMessage(prefix + "请输入答案：");
                      }
@@ -186,5 +180,21 @@ public class EventListener implements Listener {
                  e.setCancelled(true);
              }
          }
+    }
+    @EventHandler
+    public void onPlayerCloseMenu(InventoryCloseEvent e) {
+        if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getPlayer().getUniqueId()))) {
+            QuestionnaireInstance questionnaireInstance = whoAreDoingQuestionnaire.stream().filter(p -> p.first.equals(e.getPlayer().getUniqueId())).findFirst().get().second;
+            PlayerQuitQuestionnaireAbnormallyEvent playerQuitQuestionnaireAbnormallyEvent = new PlayerQuitQuestionnaireAbnormallyEvent((Player) e.getPlayer(), questionnaireInstance);
+            Bukkit.getServer().getPluginManager().callEvent(playerQuitQuestionnaireAbnormallyEvent);
+        }
+    }
+    @EventHandler
+    public void onPlayerLeave(PlayerQuitEvent e) {
+        if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getPlayer().getUniqueId()))) {
+            QuestionnaireInstance questionnaireInstance = whoAreDoingQuestionnaire.stream().filter(p -> p.first.equals(e.getPlayer().getUniqueId())).findFirst().get().second;
+            PlayerQuitQuestionnaireAbnormallyEvent playerQuitQuestionnaireAbnormallyEvent = new PlayerQuitQuestionnaireAbnormallyEvent(e.getPlayer(), questionnaireInstance);
+            Bukkit.getServer().getPluginManager().callEvent(playerQuitQuestionnaireAbnormallyEvent);
+        }
     }
 }

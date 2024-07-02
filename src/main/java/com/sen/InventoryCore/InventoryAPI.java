@@ -8,7 +8,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -31,7 +30,9 @@ public class InventoryAPI {
         if (question.type.equals(QuestionType.COMPLETION)) {
             ItemStack editStack = new ItemStack(Material.WRITABLE_BOOK);
             ItemMeta editMeta = editStack.getItemMeta();
-            editMeta.setDisplayName("请键入答案");
+            if (editMeta != null) {
+                editMeta.setDisplayName("请键入答案");
+            }
             editStack.setItemMeta(editMeta);
             inventory.setItem(13, editStack);
         } else {

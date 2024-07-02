@@ -4,7 +4,6 @@ import com.sen.QuestionnaireCore.Question;
 import com.sen.QuestionnaireCore.QuestionnaireInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.player.PlayerEvent;
 import org.jetbrains.annotations.NotNull;
 
 public class PlayerAnswerQuestionWronglyEvent extends PlayerAnswerQuestionEvent {

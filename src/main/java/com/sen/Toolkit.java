@@ -2,8 +2,6 @@ package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.base.Charsets;
-import com.sen.QuestionnaireCore.Getter;
-import com.sen.QuestionnaireCore.Question;
 import com.sen.QuestionnaireCore.Questionnaire;
 import com.sen.QuestionnaireCore.QuestionnaireInstance;
 import org.bukkit.Bukkit;
@@ -44,7 +42,7 @@ public class Toolkit<T> {
         questionnaires.add(q);
     }
     public  List<T> createList(Object... values) {
-        return new ArrayList<T>((Collection<? extends T>) Arrays.asList(values));
+        return new ArrayList<>((Collection<? extends T>) Arrays.asList(values));
     }
     public static QuestionnaireInstance matchQuestionnaire(UUID player) {
         Optional<Pair<UUID, QuestionnaireInstance>> optional = whoAreDoingQuestionnaire.stream().filter(pair -> pair.first.equals(player)).findFirst();
