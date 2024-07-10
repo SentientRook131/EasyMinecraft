@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static com.sen.Toolkit.*;
@@ -102,7 +103,8 @@ public final class em extends JavaPlugin {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
-        Player player = (Player) sender;
+        Player player = null;
+        if (sender instanceof Player) player = (Player) sender;
         try {
             if (cmd.getName().equalsIgnoreCase("em")) {
                 if (args[0].equalsIgnoreCase("location-display")) {
@@ -124,6 +126,10 @@ public final class em extends JavaPlugin {
                 } else if (args[0].equalsIgnoreCase("var")) {
                     if (args[1].equalsIgnoreCase("create")) {
                         if (args[2].equalsIgnoreCase("public")) {
+                            if (!player.isOp()) {
+                                player.sendMessage(prefix + "没有权限添加公有变量！");
+                                return true;
+                            }
                             if (config.getStringList("variables.public.$defined$").contains(args[3])) {
                                 player.sendMessage(prefix + "变量已存在！");
                             } else {
@@ -148,7 +154,13 @@ public final class em extends JavaPlugin {
                         List<String> public_variables = config.getStringList("variables.public.$defined$");
                         List<String> private_variables = config.getStringList("variables.private." + player.getUniqueId() + ".$defined$");
                         if (private_variables.contains(args[2])) config.set("variables.private." + player.getUniqueId() + "." + args[2], args[3]);
-                        else if (public_variables.contains(args[2])) config.set("variables.public." + args[2], args[3]);
+                        else if (public_variables.contains(args[2])) {
+                            if (player.isOp()) {
+                                config.set("variables.public." + args[2], args[3]);
+                            } else {
+                                player.sendMessage(prefix + "没有权限设置公有变量！");
+                            }
+                        }
                         else {
                             player.sendMessage(prefix + "变量不存在！");
                             return true;
@@ -194,6 +206,53 @@ public final class em extends JavaPlugin {
                         QuestionnaireInstance qi = q.conduct(player, true, true, true, true);
                         qi.start();
                     }
+                } else if (args[0].equalsIgnoreCase("give-command-permission") || args[0].equalsIgnoreCase("gcp")) {
+                    if (!sender.isOp()) {
+                        sender.sendMessage(prefix + "您不是管理员，无法允许别人使用命令");
+                        return true;
+                    }
+                    String allow = args[1];
+                    long time = Long.parseLong(args[2]);
+                    String[] commands = Arrays.copyOfRange(args, 3, args.length);
+                    sender.sendMessage(prefix + "即将允许的指令：" + Arrays.toString(commands));
+                    UUID uuid = Bukkit.getPlayer(allow).getUniqueId();
+                    List<String[]> original = allowCommands.get(uuid);
+                    original.add(commands);
+                    allowCommands.put(uuid, original);
+                    Bukkit.getScheduler().runTaskTimer(this, (task) -> {
+                        List<String[]> o = allowCommands.get(uuid);
+                        o.remove(commands);
+                        allowCommands.put(uuid, o);
+                        task.cancel();
+                    }, time * 20, 0);
+                } else if (args[0].equalsIgnoreCase("run_command")) {
+                    String[] finalCommandsList = Arrays.copyOfRange(args, 1, args.length);
+                    String command = String.join(" ", finalCommandsList);
+                    player.sendMessage(prefix + "您将要执行：/" + command);
+                    if (!allowCommands.isEmpty() && allowCommands.containsKey(player.getUniqueId())) {
+                        List<String[]> taps = allowCommands.get(player.getUniqueId());
+                        AtomicBoolean b = new AtomicBoolean(true);
+                        taps.forEach(s -> {
+                            try {
+                                for (int i = 1;i < s.length + 1;i++) {
+                                    if (!args[i].equals(s[i - 1]) && !s[i - 1].equals("*")) {
+                                        b.set(false);
+                                    }
+                                }
+                            } catch (Exception ignore) {
+                                b.set(false);
+                            }
+                        });
+                        boolean isOp = player.isOp();
+                        if (b.get()) {
+                            player.setOp(true);
+                            this.getServer().dispatchCommand(player, command);
+                            player.setOp(isOp);
+                        } else {
+                            player.sendMessage(prefix + "您没有使用此命令的权限！");
+                        }
+                    }
+
                 } else {
                     Optional<com.sen.Command> optionalCommand = registerCommands.stream()
                             .filter(command -> command.rootCmd.equalsIgnoreCase(args[0]))
@@ -222,12 +281,21 @@ public final class em extends JavaPlugin {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, Command cmd, @NotNull String alias, String[] args) {
         List<String> result = new ArrayList<>();
+        Player player = null;
+        if (sender instanceof Player) {
+            player = (Player) sender;
+        }
         if (cmd.getName().equalsIgnoreCase("em")) {
             if (args.length == 1) {
                 result.add("location-display");
                 result.add("var");
                 result.add("toolkit");
                 result.add("questionnaire");
+                result.add("run_command");
+                if (sender.isOp()) {
+                    result.add("give-command-permission");
+                    result.add("gcp");
+                }
             } else if (args.length == 2) {
                 if (args[0].equalsIgnoreCase("location-display")) {
                     result.add("off");
@@ -245,6 +313,8 @@ public final class em extends JavaPlugin {
                 } else if (args[0].equalsIgnoreCase("questionnaire")) {
                     result.add("conduct");
                     result.add(ChatColor.GREEN + "由于技术原因，暂不支持游戏内创建问卷，请自行编程创建问卷！");
+                } else if (args[0].equalsIgnoreCase("run_command")) {
+                    if (!allowCommands.isEmpty() && allowCommands.containsKey(player.getUniqueId())) allowCommands.get(player.getUniqueId()).forEach(s -> result.add(s[0]));
                 }
             } else if (args.length == 3) {
                 if (args[0].equalsIgnoreCase("var")) {
@@ -267,6 +337,8 @@ public final class em extends JavaPlugin {
                     } else if (args[1].equalsIgnoreCase("conduct")) {
                         for (Questionnaire q : questionnaires) result.add(q.title);
                     }
+                }else if (args[0].equalsIgnoreCase("give-command-permission") || args[0].equalsIgnoreCase("gcp")) {
+                    result.add("time");
                 }
             } else if (args.length == 4) {
                 if (args[0].equalsIgnoreCase("questionnaire")) {
@@ -306,11 +378,34 @@ public final class em extends JavaPlugin {
                 if (args[1].equalsIgnoreCase("add_question")) {
                     result.add("<score>");
                 }
-            }
-            else {
+            } else {
                 if (args[1].equalsIgnoreCase("add_question")) {
                     result.add("<choices>");
                 } else result.add(ChatColor.LIGHT_PURPLE + "Tab补全不可用！");
+            }
+            if (args.length >= 4) {
+                if (args[0].equalsIgnoreCase("give-command-permission") || args[0].equalsIgnoreCase("gcp")) {
+                    result.add("command");
+                    result.add("*");
+                }
+            }
+            if (args.length >= 3) {
+                if ((args[0].equals("give-command-permission") || args[0].equals("gcp")) && !allowCommands.isEmpty() && allowCommands.containsKey(player.getUniqueId())) {
+                    List<String[]> taps = allowCommands.get(player.getUniqueId());
+                    taps.forEach(s -> {
+                        try {
+                            for (int i = 2;i < Math.min(args.length, s.length + 2);i++) {
+                                if (args[i].equals(s[i - 2]) || s[i - 2].equals("*")) {
+                                    result.add(s[i - 1]);
+                                } else {
+                                    break;
+                                }
+                            }
+                        } catch (Exception ignore) {
+                            result.add("Tab补全错误");
+                        }
+                    });
+                }
             }
         }
         return result.isEmpty() ? super.onTabComplete(sender, cmd, alias, args) : result;
