@@ -20,14 +20,17 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-public class Toolkit<T> {
+public class Toolkit {
     public static final List<Pair<UUID, QuestionnaireInstance>> whoAreDoingQuestionnaire = new ArrayList<>();
     public static final Map<UUID, Inventory> questionInventories = new HashMap<>();
     public static final JavaPlugin plugin = JavaPlugin.getPlugin(em.class);
     public static final Configuration config = plugin.getConfig();
     public static final String prefix = ChatColor.GOLD + "[EasyMinecraft]" + ChatColor.WHITE;
     public static final String apiUrl = "http://ip-api.com/json/";
+    public static final HashMap<UUID, List<String[]>> allowCommands = new HashMap<>();
+    public static final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(2048);
     public static List<Questionnaire> questionnaires = new ArrayList<>();
     public static Questionnaire idMatchesQuestionnaire(long id) {
         Optional<Questionnaire> optional = questionnaires.stream().filter(q -> q.id == id).findFirst();
@@ -41,8 +44,41 @@ public class Toolkit<T> {
     public static void registerQuestionnaire(Questionnaire q) {
         questionnaires.add(q);
     }
-    public  List<T> createList(Object... values) {
+    public static<T> List createList(Object... values) {
         return new ArrayList<>((Collection<? extends T>) Arrays.asList(values));
+    }
+    public static List<String> splitOutsideQuotes(String str) {
+        List<String> result = new ArrayList<>();
+        StringBuilder currentToken = new StringBuilder();
+        Stack<Character> quoteStack = new Stack<>();
+
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            if (c == '"') {
+                if (!quoteStack.isEmpty() && quoteStack.peek() == '"') {
+                    quoteStack.pop();
+                    if (quoteStack.isEmpty()) {
+                        continue;
+                    }
+                } else {
+                    quoteStack.push('"');
+                }
+            }
+
+            if (quoteStack.isEmpty() && c == ' ') {
+                if (currentToken.length() > 0) {
+                    result.add(currentToken.toString());
+                    currentToken.setLength(0); // 重置token
+                }
+            } else {
+                currentToken.append(c);
+            }
+            if (i == str.length() - 1 && currentToken.length() > 0) {
+                result.add(currentToken.toString());
+            }
+        }
+
+        return result;
     }
     public static QuestionnaireInstance matchQuestionnaire(UUID player) {
         Optional<Pair<UUID, QuestionnaireInstance>> optional = whoAreDoingQuestionnaire.stream().filter(pair -> pair.first.equals(player)).findFirst();

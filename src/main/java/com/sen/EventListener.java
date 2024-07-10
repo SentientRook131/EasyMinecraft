@@ -12,17 +12,17 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.command.Command;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.server.TabCompleteEvent;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -104,30 +104,6 @@ public class EventListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerTabComplete(TabCompleteEvent e) {
-        if (e.getBuffer().endsWith("@")) {
-            List<String> suggestions = new ArrayList<>();
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                suggestions.add(player.getDisplayName());
-            }
-            e.setCompletions(suggestions);
-        }
-    }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent e) {
-        JSONObject json = JSONObject.parse(getLocationInfo(e.getPlayer().getAddress()));
-        if (config.contains("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer")) {
-            if (!json.toJSONString().equals(config.getString("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer"))) {
-                e.getPlayer().sendMessage(prefix + "检测到您的位置信息变动，建议使用 /em location-display reload 指令重试");
-            }
-        } else {
-            e.getPlayer().sendMessage(prefix + "已自动获取您的位置信息，如果想关闭位置信息显示，请输入 /em location-display off 命令。");
-            config.set("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer", json.toJSONString());
-            config.set("location-display.players-settings." + e.getPlayer().getUniqueId() + ".show-mode", "country");
-        }
-    }
-    @EventHandler
     public void onPlayerChatE5(AsyncPlayerChatEvent e) {
         if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getPlayer().getUniqueId()))) {
             QuestionnaireInstance qi = whoAreDoingQuestionnaire.stream().filter(p -> p.first.equals(e.getPlayer().getUniqueId())).findFirst().get().second;
@@ -149,6 +125,33 @@ public class EventListener implements Listener {
             }
         }
     }
+
+    @EventHandler
+    public void onPlayerTabComplete(TabCompleteEvent e) {
+        if (e.getBuffer().endsWith("@")) {
+            List<String> suggestions = new ArrayList<>();
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                suggestions.add(player.getDisplayName());
+            }
+            e.setCompletions(suggestions);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent e) {
+        allowCommands.put(e.getPlayer().getUniqueId(), new ArrayList<>());
+        JSONObject json = JSONObject.parse(getLocationInfo(e.getPlayer().getAddress()));
+        if (config.contains("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer")) {
+            if (!json.toJSONString().equals(config.getString("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer"))) {
+                e.getPlayer().sendMessage(prefix + "检测到您的位置信息变动，建议使用 /em location-display reload 指令重试");
+            }
+        } else {
+            e.getPlayer().sendMessage(prefix + "已自动获取您的位置信息，如果想关闭位置信息显示，请输入 /em location-display off 命令。");
+            config.set("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer", json.toJSONString());
+            config.set("location-display.players-settings." + e.getPlayer().getUniqueId() + ".show-mode", "country");
+        }
+    }
+
     @EventHandler
     public void onPlayerInteractMenu(InventoryClickEvent e) {
          if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getWhoClicked().getUniqueId()))) {
