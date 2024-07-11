@@ -208,6 +208,7 @@ public class EventListener implements Listener {
             Bukkit.getServer().getPluginManager().callEvent(playerQuitQuestionnaireAbnormallyEvent);
         }
     }
+    /*
 
     @EventHandler
     public void onPlayerJoinS(PlayerJoinEvent e) {
@@ -288,4 +289,6 @@ public class EventListener implements Listener {
     public void onPlayerDamageOthers(EntityDamageByEntityEvent e) {
         if (e.getDamager() instanceof Player player) log.append(LogEntry.generate(e.getEventName(), player.getDisplayName(), "DamageOhers", objectToJSON(e, 1)));
     }
+
+     */
 }
