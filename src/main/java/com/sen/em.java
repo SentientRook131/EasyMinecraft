@@ -238,7 +238,7 @@ public final class em extends JavaPlugin {
                     String allow = args[1];
                     long time = Long.parseLong(args[2]);
                     String[] commands = Arrays.copyOfRange(args, 3, args.length);
-                    sender.sendMessage(prefix + "即将允许的指令：" + "/" + String.join(" ", commands));
+                    sender.sendMessage(prefix + "允许" + allow + "的指令：" + "/" + String.join(" ", commands));
                     UUID uuid = Bukkit.getPlayer(allow).getUniqueId();
                     List<String[]> original = allowCommands.get(uuid);
                     original.add(commands);
@@ -254,8 +254,8 @@ public final class em extends JavaPlugin {
                     String command = String.join(" ", finalCommandsList);
                     if (!allowCommands.isEmpty() && allowCommands.containsKey(player.getUniqueId())) {
                         List<String[]> taps = allowCommands.get(player.getUniqueId());
-                        AtomicBoolean b = new AtomicBoolean(true);
-                        taps.forEach(s -> {
+                        Optional<String[]> o = taps.stream().filter(s -> {
+                            AtomicBoolean b = new AtomicBoolean(true);
                             try {
                                 for (int i = 1;i < s.length + 1;i++) {
                                     if (!args[i].equals(s[i - 1]) && !s[i - 1].equals("*")) {
@@ -267,14 +267,15 @@ public final class em extends JavaPlugin {
                             } catch (Exception ignore) {
                                 b.set(false);
                             }
-                        });
-                        boolean isOp = player.isOp();
-                        if (b.get()) {
+                            return b.get();
+                        }).findFirst();
+                        if (o.isPresent()) {
+                            boolean isOp = player.isOp();
                             player.sendMessage(prefix + "您将要执行：/" + command);
                             player.setOp(true);
                             this.getServer().dispatchCommand(player, command);
                             player.setOp(isOp);
-                        } else {
+                        }else {
                             player.sendMessage(prefix + "您没有使用此命令的权限！");
                         }
                     }
@@ -287,7 +288,6 @@ public final class em extends JavaPlugin {
                     if (allow.removeIf(s -> s[0].equals(root))) sender.sendMessage(prefix + "移除玩家执行" + root + "指令的权限成功！");
                     else sender.sendMessage(prefix + "移除失败，可能是本身就不具有执行此指令的权限！");
                     allowCommands.put(uuid, allow);
-
                 } else {
                     Optional<com.sen.Command> optionalCommand = registerCommands.stream()
                             .filter(command -> command.rootCmd.equalsIgnoreCase(args[0]))

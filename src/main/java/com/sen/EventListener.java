@@ -36,7 +36,7 @@ import static com.sen.Toolkit.*;
 public class EventListener implements Listener {
     @EventHandler
     public void onPlayerChatE1(AsyncPlayerChatEvent e) {
-        if (!config.getBoolean("location-display.enable")) return;
+        if (!config.getBoolean("location-display.enabled")) return;
         if (config.contains("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer")) {
             String showMode = config.getString("location-display.players-settings." + e.getPlayer().getUniqueId() + ".show-mode");
             JSONObject json = getLocationByUUID(e.getPlayer().getUniqueId());

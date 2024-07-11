@@ -2,28 +2,18 @@ package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.base.Charsets;
-import com.sen.Log.Log;
 import com.sen.QuestionnaireCore.Questionnaire;
 import com.sen.QuestionnaireCore.QuestionnaireInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.crypto.Cipher;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URL;
@@ -41,7 +31,7 @@ public class Toolkit {
     public static final String apiUrl = "http://ip-api.com/json/";
     public static final HashMap<UUID, List<String[]>> allowCommands = new HashMap<>();
     public static final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(2048);
-    public static final Log log = new Log();
+    //public static final Log log = new Log();
     public static List<Questionnaire> questionnaires = new ArrayList<>();
     public static Questionnaire idMatchesQuestionnaire(long id) {
         Optional<Questionnaire> optional = questionnaires.stream().filter(q -> q.id == id).findFirst();
@@ -65,6 +55,7 @@ public class Toolkit {
     public static boolean isPrimitiveOrString(Class<?> clazz) {
         return clazz.isPrimitive() || clazz.equals(String.class);
     }
+    /*
     public static<T> JSONObject objectToJSON(T obj, int floor) {
         JSONObject object = new JSONObject();
         if (obj == null) return new JSONObject();
@@ -153,6 +144,7 @@ public class Toolkit {
         }
         return object;
     }
+     */
     public static List<String> splitOutsideQuotes(String str) {
         List<String> result = new ArrayList<>();
         StringBuilder currentToken = new StringBuilder();
