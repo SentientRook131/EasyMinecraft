@@ -2,18 +2,28 @@ package com.sen;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.base.Charsets;
+import com.sen.Log.Log;
 import com.sen.QuestionnaireCore.Questionnaire;
 import com.sen.QuestionnaireCore.QuestionnaireInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.crypto.Cipher;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URL;
@@ -31,6 +41,7 @@ public class Toolkit {
     public static final String apiUrl = "http://ip-api.com/json/";
     public static final HashMap<UUID, List<String[]>> allowCommands = new HashMap<>();
     public static final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(2048);
+    public static final Log log = new Log();
     public static List<Questionnaire> questionnaires = new ArrayList<>();
     public static Questionnaire idMatchesQuestionnaire(long id) {
         Optional<Questionnaire> optional = questionnaires.stream().filter(q -> q.id == id).findFirst();
@@ -40,12 +51,107 @@ public class Toolkit {
         Optional<Questionnaire> optional = questionnaires.stream().filter(q -> Objects.equals(q.title, title)).findFirst();
         return optional.orElse(null);
     }
-
+    @SafeVarargs
+    public static<T> boolean isIn(T original, T... list) {
+        return Arrays.asList(list).contains(original);
+    }
     public static void registerQuestionnaire(Questionnaire q) {
         questionnaires.add(q);
     }
-    public static<T> List createList(Object... values) {
-        return new ArrayList<>((Collection<? extends T>) Arrays.asList(values));
+    @SafeVarargs
+    public static<T> List<T> createList(T... values) {
+        return new ArrayList<>(Arrays.asList(values));
+    }
+    public static boolean isPrimitiveOrString(Class<?> clazz) {
+        return clazz.isPrimitive() || clazz.equals(String.class);
+    }
+    public static<T> JSONObject objectToJSON(T obj, int floor) {
+        JSONObject object = new JSONObject();
+        if (obj == null) return new JSONObject();
+        Class<?> clazz = obj.getClass();
+        Method[] methods = clazz.getMethods();
+        for (Method method : methods) {
+            if (method.getName().startsWith("get") && method.getParameterCount() == 0) {
+                if (method.getName().equals("getHandlers") || method.getName().equals("getHandlerList")) continue;
+                if (isPrimitiveOrString(method.getReturnType())) {
+                    try {
+                        Object o = method.invoke(obj);
+                        object.put(method.getName(), o);
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+
+                    }
+                } else if (floor < 5) {
+                    if (object.toJSONString().getBytes().length >= (1024 * 16)) continue;
+                    if ((method.getReturnType().getPackageName().startsWith("org.bukkit") && !method.getReturnType().getPackageName().startsWith("org.bukkit.craftbukkit")) || method.getReturnType().isAssignableFrom(Serializable.class)) {
+                        if (method.getReturnType().isAssignableFrom(Player.class)) {
+                            JSONObject o2 = new JSONObject();
+                            try {
+                                Player player = (Player) method.invoke(obj);
+                                if (player == null) continue;
+                                o2.put("getDisplayName", player.getDisplayName());
+                                o2.put("getName", player.getName());
+                                o2.put("getExp", player.getExp());
+                                o2.put("getPing", player.getPing());
+                                o2.put("getHealth", player.getHealth());
+                                object.put(method.getName(), o2);
+                            } catch (IllegalAccessException | InvocationTargetException e) {
+                                throw new RuntimeException(e);
+                            }
+                            continue;
+                        } else if (method.getReturnType().isAssignableFrom(LivingEntity.class)) {
+                            JSONObject o2 = new JSONObject();
+                            try {
+                                Entity entity = (Entity) method.invoke(obj);
+                                if (entity == null) continue;
+                                o2.put("getName", entity.getName());
+                                object.put(method.getName(), o2);
+                            } catch (IllegalAccessException | InvocationTargetException e) {
+                                throw new RuntimeException(e);
+                            }
+                            continue;
+                        } else if (method.getReturnType().isAssignableFrom(Block.class)) {
+                            JSONObject o2 = new JSONObject();
+                            try {
+                                Block block = (Block) method.invoke(obj);
+                                if (block == null) continue;
+                                if (block.getState().getType().equals(Material.AIR)) continue;
+                                o2.put("getName", block.getState().getType().name());
+                                JSONObject loc = new JSONObject();
+                                loc.put("getBlockX", block.getLocation().getBlockX());
+                                loc.put("getBlockY", block.getLocation().getBlockY());
+                                loc.put("getBlockZ", block.getLocation().getBlockZ());
+                                o2.put("getLocation", loc);
+                                object.put(method.getName(), o2);
+                            } catch (IllegalAccessException | InvocationTargetException e) {
+                                throw new RuntimeException(e);
+                            }
+                            continue;
+                        } else if (method.getReturnType().isAssignableFrom(Location.class)) {
+                            JSONObject o2 = new JSONObject();
+                            try {
+                                Location loc = (Location) method.invoke(obj);
+                                if (loc == null) continue;
+                                o2.put("getBlockX", loc.getBlockX());
+                                o2.put("getBlockY", loc.getBlockY());
+                                o2.put("getBlockZ", loc.getBlockZ());
+                                object.put(method.getName(), o2);
+                            } catch (IllegalAccessException | InvocationTargetException e) {
+                                throw new RuntimeException(e);
+                            }
+                            continue;
+                        }
+                        try {
+                            Object o = method.invoke(obj);
+                            if (o == null) continue;
+                            object.put(method.getName(), objectToJSON(o, floor + 1));
+                        } catch (IllegalAccessException | InvocationTargetException e) {
+
+                        }
+                    }
+                }
+            }
+        }
+        return object;
     }
     public static List<String> splitOutsideQuotes(String str) {
         List<String> result = new ArrayList<>();
@@ -66,14 +172,14 @@ public class Toolkit {
             }
 
             if (quoteStack.isEmpty() && c == ' ') {
-                if (currentToken.length() > 0) {
+                if (!currentToken.isEmpty()) {
                     result.add(currentToken.toString());
                     currentToken.setLength(0); // 重置token
                 }
             } else {
                 currentToken.append(c);
             }
-            if (i == str.length() - 1 && currentToken.length() > 0) {
+            if (i == str.length() - 1 && !currentToken.isEmpty()) {
                 result.add(currentToken.toString());
             }
         }

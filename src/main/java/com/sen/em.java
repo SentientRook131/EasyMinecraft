@@ -1,5 +1,6 @@
 package com.sen;
 
+import com.sen.Log.Log;
 import com.sen.QuestionnaireCore.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -10,6 +11,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -97,6 +101,13 @@ public final class em extends JavaPlugin {
             config.set("questionnaires." + questionnaire.id + ".$registry$", questionIds);
         }
         config.set("questionnaires.$registry$", questionnaireIds);
+        /*
+        LocalDateTime now = LocalDateTime.now();
+        try {
+            log.saveToFile("./logs/log-" + now.getYear() + "-" + now.getMonthValue() + "-" + now.getDayOfMonth() + "-" + now.getHour() + "-" + now.getMinute() + "-" + now.getSecond() + ".txt");
+        } catch (IOException e) {
+            System.out.println("日志文件保存失败！");
+        }*/
         saveConfig();
     }
 
@@ -119,24 +130,38 @@ public final class em extends JavaPlugin {
                         player.sendMessage(prefix + "正在重新获取位置信息。");
                         config.set("location-display.players-settings." + player.getUniqueId() + ".location-buffer", getLocationInfo(player.getAddress()));
                         player.sendMessage(prefix + "获取成功。");
+                    } else if (args[1].equalsIgnoreCase("disable") ) {
+                        if (!sender.isOp()) {
+                            sender.sendMessage(prefix + "您不是管理员，无法使用此命令！");
+                            return true;
+                        }
+                        config.set("location-display.enabled", false);
+                        sender.sendMessage(prefix + "设置全局禁用成功！");
+                    } else if (args[1].equalsIgnoreCase("enable")) {
+                        if (!sender.isOp()) {
+                            sender.sendMessage(prefix + "您不是管理员，无法使用此命令！");
+                            return true;
+                        }
+                        config.set("location-display.enabled", true);
+                        sender.sendMessage(prefix + "设置全局启用成功！");
                     } else {
-                        player.sendMessage(prefix + "输入的参数有问题！如需关闭请输入参数：off。");
+                        sender.sendMessage(prefix + "输入的参数有问题！如需关闭请输入参数：off。");
                     }
                 } else if (args[0].equalsIgnoreCase("var")) {
                     if (args[1].equalsIgnoreCase("create")) {
                         if (args[2].equalsIgnoreCase("public")) {
-                            if (!player.isOp()) {
-                                player.sendMessage(prefix + "没有权限添加公有变量！");
+                            if (!sender.isOp()) {
+                                sender.sendMessage(prefix + "没有权限添加公有变量！");
                                 return true;
                             }
                             if (config.getStringList("variables.public.$defined$").contains(args[3])) {
-                                player.sendMessage(prefix + "变量已存在！");
+                                sender.sendMessage(prefix + "变量已存在！");
                             } else {
                                 config.set("variables.public." + args[3], (args.length == 4) ? "" : args[4]);
                                 List<String> list = config.getStringList("variables.public.$defined$");
                                 list.add(args[3]);
                                 config.set("variables.public.$defined$", list);
-                                player.sendMessage(prefix + "变量创建成功！");
+                                sender.sendMessage(prefix + "变量创建成功！");
                             }
                         } else if (args[2].equalsIgnoreCase("private")) {
                             if (config.getStringList("variables.private." + player.getUniqueId() + ".$defined$").contains(args[3])) {
@@ -154,17 +179,17 @@ public final class em extends JavaPlugin {
                         List<String> private_variables = config.getStringList("variables.private." + player.getUniqueId() + ".$defined$");
                         if (private_variables.contains(args[2])) config.set("variables.private." + player.getUniqueId() + "." + args[2], args[3]);
                         else if (public_variables.contains(args[2])) {
-                            if (player.isOp()) {
+                            if (sender.isOp()) {
                                 config.set("variables.public." + args[2], args[3]);
                             } else {
-                                player.sendMessage(prefix + "没有权限设置公有变量！");
+                                sender.sendMessage(prefix + "没有权限设置公有变量！");
                             }
                         }
                         else {
-                            player.sendMessage(prefix + "变量不存在！");
+                            sender.sendMessage(prefix + "变量不存在！");
                             return true;
                         }
-                        player.sendMessage(prefix + "变量设置成功！");
+                        sender.sendMessage(prefix + "变量设置成功！");
                     }
                 } else if (args[0].equalsIgnoreCase("toolkit")) {
                     if (args[1].equalsIgnoreCase("ping")) {
@@ -174,7 +199,7 @@ public final class em extends JavaPlugin {
                         Random random = new Random();
                         int x = random.nextInt(-10000000,10000000);
                         int z = random.nextInt(-10000000, 10000000);
-                        int y = player.getWorld().getHighestBlockYAt(x, z);
+                        int y = player.getWorld().getHighestBlockYAt(x, z) + 1;
                         player.teleport(new Location(player.getWorld(), x, y, z));
                         player.sendMessage(prefix + "随机传送成功！");
                     } else if (args[1].equalsIgnoreCase("random-num")) {
@@ -213,7 +238,7 @@ public final class em extends JavaPlugin {
                     String allow = args[1];
                     long time = Long.parseLong(args[2]);
                     String[] commands = Arrays.copyOfRange(args, 3, args.length);
-                    sender.sendMessage(prefix + "即将允许的指令：" + Arrays.toString(commands));
+                    sender.sendMessage(prefix + "即将允许的指令：" + "/" + String.join(" ", commands));
                     UUID uuid = Bukkit.getPlayer(allow).getUniqueId();
                     List<String[]> original = allowCommands.get(uuid);
                     original.add(commands);
@@ -227,7 +252,6 @@ public final class em extends JavaPlugin {
                 } else if (args[0].equalsIgnoreCase("run_command")) {
                     String[] finalCommandsList = Arrays.copyOfRange(args, 1, args.length);
                     String command = String.join(" ", finalCommandsList);
-                    player.sendMessage(prefix + "您将要执行：/" + command);
                     if (!allowCommands.isEmpty() && allowCommands.containsKey(player.getUniqueId())) {
                         List<String[]> taps = allowCommands.get(player.getUniqueId());
                         AtomicBoolean b = new AtomicBoolean(true);
@@ -235,7 +259,9 @@ public final class em extends JavaPlugin {
                             try {
                                 for (int i = 1;i < s.length + 1;i++) {
                                     if (!args[i].equals(s[i - 1]) && !s[i - 1].equals("*")) {
-                                        b.set(false);
+                                        String[] s2 = s[i - 1].split("\\|");
+                                        int finalI = i;
+                                        b.set(Arrays.stream(s2).anyMatch(str -> str.equals(args[finalI])));
                                     }
                                 }
                             } catch (Exception ignore) {
@@ -244,6 +270,7 @@ public final class em extends JavaPlugin {
                         });
                         boolean isOp = player.isOp();
                         if (b.get()) {
+                            player.sendMessage(prefix + "您将要执行：/" + command);
                             player.setOp(true);
                             this.getServer().dispatchCommand(player, command);
                             player.setOp(isOp);
@@ -251,6 +278,15 @@ public final class em extends JavaPlugin {
                             player.sendMessage(prefix + "您没有使用此命令的权限！");
                         }
                     }
+
+                } else if (args[0].equalsIgnoreCase("remove-command-permission") || args[0].equalsIgnoreCase("rcp")) {
+                    String who = args[1];
+                    String root = args[2];
+                    UUID uuid = Bukkit.getPlayer(who).getUniqueId();
+                    List<String[]> allow = allowCommands.get(uuid);
+                    if (allow.removeIf(s -> s[0].equals(root))) sender.sendMessage(prefix + "移除玩家执行" + root + "指令的权限成功！");
+                    else sender.sendMessage(prefix + "移除失败，可能是本身就不具有执行此指令的权限！");
+                    allowCommands.put(uuid, allow);
 
                 } else {
                     Optional<com.sen.Command> optionalCommand = registerCommands.stream()
@@ -294,6 +330,8 @@ public final class em extends JavaPlugin {
                 if (sender.isOp()) {
                     result.add("give-command-permission");
                     result.add("gcp");
+                    result.add("remove-command-permission");
+                    result.add("rcp");
                 }
             } else if (args.length == 2) {
                 if (args[0].equalsIgnoreCase("location-display")) {
@@ -302,6 +340,13 @@ public final class em extends JavaPlugin {
                     result.add("city");
                     result.add("province");
                     result.add("country");
+                    if (sender.isOp()) {
+                        if (config.getBoolean("location-display.enabled")) {
+                            result.add("disable");
+                        } else {
+                            result.add("enable");
+                        }
+                    }
                 } else if (args[0].equalsIgnoreCase("var")) {
                     result.add("create");
                     result.add("set");
@@ -336,8 +381,10 @@ public final class em extends JavaPlugin {
                     } else if (args[1].equalsIgnoreCase("conduct")) {
                         for (Questionnaire q : questionnaires) result.add(q.title);
                     }
-                }else if (args[0].equalsIgnoreCase("give-command-permission") || args[0].equalsIgnoreCase("gcp")) {
+                } else if (args[0].equalsIgnoreCase("give-command-permission") || args[0].equalsIgnoreCase("gcp")) {
                     result.add("time");
+                } else if (args[0].equalsIgnoreCase("remove-command-permission") || args[0].equalsIgnoreCase("rcp")) {
+                    allowCommands.get(Bukkit.getPlayer(args[1]).getUniqueId()).forEach(s -> result.add(s[0]));
                 }
             } else if (args.length == 4) {
                 if (args[0].equalsIgnoreCase("questionnaire")) {

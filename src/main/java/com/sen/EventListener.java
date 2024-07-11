@@ -5,6 +5,7 @@ import com.sen.Events.PlayerAnswerQuestionCorrectlyEvent;
 import com.sen.Events.PlayerAnswerQuestionEvent;
 import com.sen.Events.PlayerAnswerQuestionWronglyEvent;
 import com.sen.Events.PlayerQuitQuestionnaireAbnormallyEvent;
+import com.sen.Log.LogEntry;
 import com.sen.QuestionnaireCore.Question;
 import com.sen.QuestionnaireCore.QuestionType;
 import com.sen.QuestionnaireCore.QuestionnaireInstance;
@@ -16,6 +17,10 @@ import org.bukkit.command.Command;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.*;
@@ -31,6 +36,7 @@ import static com.sen.Toolkit.*;
 public class EventListener implements Listener {
     @EventHandler
     public void onPlayerChatE1(AsyncPlayerChatEvent e) {
+        if (!config.getBoolean("location-display.enable")) return;
         if (config.contains("location-display.players-settings." + e.getPlayer().getUniqueId() + ".location-buffer")) {
             String showMode = config.getString("location-display.players-settings." + e.getPlayer().getUniqueId() + ".show-mode");
             JSONObject json = getLocationByUUID(e.getPlayer().getUniqueId());
@@ -184,6 +190,7 @@ public class EventListener implements Listener {
              }
          }
     }
+
     @EventHandler
     public void onPlayerCloseMenu(InventoryCloseEvent e) {
         if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getPlayer().getUniqueId()))) {
@@ -192,6 +199,7 @@ public class EventListener implements Listener {
             Bukkit.getServer().getPluginManager().callEvent(playerQuitQuestionnaireAbnormallyEvent);
         }
     }
+
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent e) {
         if (whoAreDoingQuestionnaire.stream().anyMatch(p -> p.first.equals(e.getPlayer().getUniqueId()))) {
@@ -199,5 +207,85 @@ public class EventListener implements Listener {
             PlayerQuitQuestionnaireAbnormallyEvent playerQuitQuestionnaireAbnormallyEvent = new PlayerQuitQuestionnaireAbnormallyEvent(e.getPlayer(), questionnaireInstance);
             Bukkit.getServer().getPluginManager().callEvent(playerQuitQuestionnaireAbnormallyEvent);
         }
+    }
+
+    @EventHandler
+    public void onPlayerJoinS(PlayerJoinEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "Join", e.getJoinMessage()));
+    }
+
+    @EventHandler
+    public void onPlayerQuitS(PlayerQuitEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "Quit", e.getQuitMessage()));
+    }
+
+    @EventHandler
+    public void onPlayerInteractS(PlayerInteractEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "Interact", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerEnterCommandS(PlayerCommandPreprocessEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "CommandPreprocess", e.getMessage()));
+    }
+
+    @EventHandler
+    public void onPlayerCommandSendS(PlayerCommandSendEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "CommandSend", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerDeathS(PlayerDeathEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getEntity().getDisplayName(), "Death", e.getDeathMessage()));
+    }
+
+    @EventHandler
+    public void onPlayerRespawnS(PlayerRespawnEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "Respawn", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerBedEnterS(PlayerBedEnterEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "BedEnter", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerBedLeaveS(PlayerBedLeaveEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "BedLeave", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerChangedMainHandS(PlayerChangedMainHandEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "ChangedMainHand", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerChangedMainHandS(PlayerChangedWorldEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "ChangedWorld", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerDropItemS(PlayerDropItemEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "DropItem", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerChatS(AsyncPlayerChatEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "Chat", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerBreakBlockS(BlockBreakEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "Chat", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerPlaceBlock(BlockPlaceEvent e) {
+        log.append(LogEntry.generate(e.getEventName(), e.getPlayer().getDisplayName(), "Chat", objectToJSON(e, 1)));
+    }
+
+    @EventHandler
+    public void onPlayerDamageOthers(EntityDamageByEntityEvent e) {
+        if (e.getDamager() instanceof Player player) log.append(LogEntry.generate(e.getEventName(), player.getDisplayName(), "DamageOhers", objectToJSON(e, 1)));
     }
 }
